@@ -1,0 +1,41 @@
+body{
+
+    background:var(--bg);
+
+    color:var(--text);
+
+    overflow-x:hidden;
+
+}
+
+*{
+
+    box-sizing:border-box;
+
+}
+
+.app-shell{
+
+    display:flex;
+
+    min-height:100vh;
+
+}
+
+.main-content{
+
+    flex:1;
+
+    padding:28px;
+
+}
+
+.page{
+
+    width:100%;
+
+    max-width:1600px;
+
+    margin:auto;
+
+}

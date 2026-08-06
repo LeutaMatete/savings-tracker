@@ -1,0 +1,34 @@
+:root {
+
+    --bg: #0B1220;
+    --bg-secondary: #111827;
+    --surface: rgba(17,24,39,.88);
+
+    --sidebar: #0E1626;
+
+    --primary: #00D4AA;
+    --primary-hover: #00c29c;
+
+    --secondary: #00B8FF;
+
+    --success: #22C55E;
+
+    --warning: #F59E0B;
+
+    --danger: #EF4444;
+
+    --text: #F8FAFC;
+
+    --text-muted: #94A3B8;
+
+    --border: rgba(255,255,255,.08);
+
+    --shadow:
+        0 8px 30px rgba(0,0,0,.35);
+
+    --glass:
+        rgba(255,255,255,.04);
+
+    --radius:18px;
+
+}
