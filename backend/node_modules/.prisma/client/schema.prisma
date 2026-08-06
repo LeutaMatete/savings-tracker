@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String                 @id @default(uuid())
+  name                  String
+  email                 String                 @unique
+  passwordHash          String
+  transactions          Transaction[]
+  goals                 Goal[]
+  memberships           CircleMember[]
+  recurringTransactions RecurringTransaction[]
+  accounts              Account[]
+  budgets               Budget[]
+  createdAt             DateTime               @default(now())
+}
+
+model Account {
+  id                    String                 @id @default(uuid())
+  user                  User                   @relation(fields: [userId], references: [id])
+  userId                String
+  name                  String
+  type                  String
+  balance               Float                  @default(0)
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+  createdAt             DateTime               @default(now())
+}
+
+model Budget {
+  id           String   @id @default(uuid())
+  user         User     @relation(fields: [userId], references: [id])
+  userId       String
+  category     String
+  monthlyLimit Float
+  createdAt    DateTime @default(now())
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  amount    Float
+  type      String
+  category  String?
+  date      DateTime @default(now())
+  account   Account? @relation(fields: [accountId], references: [id])
+  accountId String?
+}
+
+model Goal {
+  id                    String                 @id @default(uuid())
+  user                  User                   @relation(fields: [userId], references: [id])
+  userId                String
+  title                 String
+  targetAmount          Float
+  currentAmount         Float                  @default(0)
+  deadline              DateTime?
+  recurringTransactions RecurringTransaction[]
+}
+
+model RecurringTransaction {
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  amount      Float
+  type        String
+  category    String?
+  frequency   String
+  dayOfMonth  Int?
+  dayOfWeek   Int?
+  goal        Goal?     @relation(fields: [goalId], references: [id])
+  goalId      String?
+  account     Account?  @relation(fields: [accountId], references: [id])
+  accountId   String?
+  active      Boolean   @default(true)
+  lastRunDate DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Circle {
+  id                 String         @id @default(uuid())
+  name               String
+  contributionAmount Float
+  frequency          String
+  payoutType         String
+  targetAmount       Float?
+  currentRound       Int            @default(1)
+  members            CircleMember[]
+  createdAt          DateTime       @default(now())
+}
+
+model CircleMember {
+  id                String         @id @default(uuid())
+  circle            Circle         @relation(fields: [circleId], references: [id])
+  circleId          String
+  user              User           @relation(fields: [userId], references: [id])
+  userId            String
+  joinedAt          DateTime       @default(now())
+  hasReceivedPayout Boolean        @default(false)
+  contributions     Contribution[]
+}
+
+model Contribution {
+  id       String       @id @default(uuid())
+  member   CircleMember @relation(fields: [memberId], references: [id])
+  memberId String
+  amount   Float
+  datePaid DateTime?
+  status   String
+}
