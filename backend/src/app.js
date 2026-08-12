@@ -9,6 +9,7 @@ const quickCaptureRoutes = require('./routes/quickCapture.routes');
 const accountsRoutes = require('./routes/accounts.routes');
 const budgetsRoutes = require('./routes/budgets.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const pushRoutes = require('./routes/push.routes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -20,6 +21,10 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });
 });
 
+app.get('/api/push/vapid-public-key', (req, res) => {
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionsRoutes);
 app.use('/api/goals', goalsRoutes);
@@ -29,6 +34,7 @@ app.use('/api/quickcapture', quickCaptureRoutes);
 app.use('/api/accounts', accountsRoutes);
 app.use('/api/budgets', budgetsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/push', pushRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

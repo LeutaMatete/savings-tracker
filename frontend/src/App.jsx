@@ -1,21 +1,29 @@
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
-  Home, ArrowLeftRight, Target, Users, Repeat, LogOut,
+  Home, ArrowLeftRight, Target, Users, Repeat, LogOut, Sun,
   ArrowDownLeft, ArrowUpRight, TrendingUp, TrendingDown, MoreHorizontal,
 } from 'lucide-react';
 import api, { setOnUnauthorized } from './api';
 
-const CHART_COLORS = ['#2FAE60', '#D7F24C', '#FF9F43', '#FF4757', '#7C5CFC', '#3E9AE8'];
+const CHART_COLORS = ['#00D3F2', '#39FF88', '#FFB454', '#FF4D6D', '#8C5CF7', '#5CA7F7'];
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const TABS = [
   { id: 'overview', label: 'Home', icon: Home },
-  { id: 'transactions', label: 'Wallet', icon: ArrowLeftRight },
+  { id: 'transactions', label: 'Transactions', icon: ArrowLeftRight },
   { id: 'goals', label: 'Goals', icon: Target },
   { id: 'circles', label: 'Circles', icon: Users },
-  { id: 'recurring', label: 'Repeat', icon: Repeat },
+  { id: 'recurring', label: 'Recurring', icon: Repeat },
+  { id: 'briefing', label: 'Briefing', icon: Sun },
 ];
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
@@ -67,6 +75,13 @@ function App() {
   const [submittingCommand, setSubmittingCommand] = useState(false);
   const [showCommandHelp, setShowCommandHelp] = useState(false);
 
+  const [briefingSettings, setBriefingSettings] = useState({ briefingEnabled: false, briefingHour: 7, briefingMinute: 0 });
+  const [todayBriefing, setTodayBriefing] = useState(null);
+  const [pushSupported, setPushSupported] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [savingBriefingSettings, setSavingBriefingSettings] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
+
   function showToast(message, type = 'error') {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
@@ -80,12 +95,18 @@ function App() {
   }, []);
 
   useEffect(() => {
+    setPushSupported('serviceWorker' in navigator && 'PushManager' in window);
+  }, []);
+
+  useEffect(() => {
     if (token) {
       fetchDashboard();
       fetchTransactions();
       fetchGoals();
       fetchCircles();
       fetchRecurring();
+      fetchBriefingSettings();
+      fetchTodayBriefing();
     }
   }, [token]);
 
@@ -117,6 +138,20 @@ function App() {
   async function fetchRecurring() {
     try { const res = await api.get('/recurring'); setRecurring(res.data); }
     catch (err) { showToast(err.friendlyMessage); }
+  }
+  async function fetchBriefingSettings() {
+    try {
+      const res = await api.get('/push/settings');
+      setBriefingSettings({
+        briefingEnabled: res.data.briefingEnabled,
+        briefingHour: res.data.briefingHour ?? 7,
+        briefingMinute: res.data.briefingMinute ?? 0,
+      });
+    } catch (err) { /* silent — not critical */ }
+  }
+  async function fetchTodayBriefing() {
+    try { const res = await api.get('/push/today'); setTodayBriefing(res.data.text); }
+    catch (err) { /* silent */ }
   }
 
   async function handleAuthSubmit(e) {
@@ -335,6 +370,84 @@ function App() {
     }
   }
 
+  async function handleEnableBriefing() {
+    if (!pushSupported) {
+      showToast('Push notifications are not supported in this browser');
+      return;
+    }
+    setSubscribing(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        showToast('Notification permission was not granted');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+
+      const { data } = await api.get('/push/vapid-public-key');
+      if (!data.publicKey) {
+        showToast('Push notifications are not configured on the server yet');
+        return;
+      }
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(data.publicKey),
+      });
+
+      const timezoneOffsetMinutes = new Date().getTimezoneOffset();
+
+      await api.post('/push/subscribe', { subscription, timezoneOffsetMinutes });
+      await api.post('/push/settings', {
+        briefingEnabled: true,
+        briefingHour: briefingSettings.briefingHour,
+        briefingMinute: briefingSettings.briefingMinute,
+        timezoneOffsetMinutes,
+      });
+
+      setBriefingSettings((prev) => ({ ...prev, briefingEnabled: true }));
+      showToast('Morning briefing enabled', 'success');
+    } catch (err) {
+      showToast('Could not enable notifications — ' + (err.message || 'unknown error'));
+    } finally {
+      setSubscribing(false);
+    }
+  }
+
+  async function handleSaveBriefingTime(e) {
+    e.preventDefault();
+    setSavingBriefingSettings(true);
+    try {
+      const timezoneOffsetMinutes = new Date().getTimezoneOffset();
+      await api.post('/push/settings', {
+        briefingHour: parseInt(briefingSettings.briefingHour),
+        briefingMinute: parseInt(briefingSettings.briefingMinute),
+        timezoneOffsetMinutes,
+      });
+      showToast('Briefing time saved', 'success');
+    } catch (err) { showToast(err.friendlyMessage); }
+    finally { setSavingBriefingSettings(false); }
+  }
+
+  async function handleDisableBriefing() {
+    try {
+      await api.post('/push/unsubscribe', {});
+      setBriefingSettings((prev) => ({ ...prev, briefingEnabled: false }));
+      showToast('Briefing disabled', 'success');
+    } catch (err) { showToast(err.friendlyMessage); }
+  }
+
+  async function handleSendTest() {
+    setSendingTest(true);
+    try {
+      const res = await api.post('/push/test');
+      showToast('Test notification sent', 'success');
+    } catch (err) { showToast(err.friendlyMessage); }
+    finally { setSendingTest(false); }
+  }
+
   if (!token) {
     return (
       <div className="auth-screen">
@@ -401,6 +514,13 @@ function App() {
       </header>
 
       <main className="main">
+        {todayBriefing && (
+          <div className="briefing-banner">
+            <Sun size={16} />
+            <p>{todayBriefing}</p>
+          </div>
+        )}
+
         <div className="command-bar">
           <form onSubmit={handleCommandSubmit} className="command-form">
             <span className="command-prompt">›</span>
@@ -432,7 +552,7 @@ function App() {
         <div className="segmented-tabs">
           {TABS.map((tab) => (
             <button key={tab.id} className={`segmented-tab ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
-              {tab.label === 'Repeat' ? 'Recurring' : tab.label === 'Wallet' ? 'Transactions' : tab.label}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -459,9 +579,7 @@ function App() {
               </div>
             </div>
 
-            <div className="section-head">
-              <h2>My accounts</h2>
-            </div>
+            <div className="section-head"><h2>My accounts</h2></div>
             <div className="account-scroll">
               {dashboard.accounts.map((a) => (
                 <div key={a.id} className="account-chip">
@@ -489,9 +607,7 @@ function App() {
 
             <div className="chart-card">
               <h2>Savings progress</h2>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: `${dashboard.savings.progressPct}%` }} />
-              </div>
+              <div className="progress-track"><div className="progress-fill" style={{ width: `${dashboard.savings.progressPct}%` }} /></div>
               <p className="mono goal-amounts">
                 M{dashboard.savings.totalSaved.toFixed(2)} / M{dashboard.savings.totalTarget.toFixed(2)} saved across all goals
               </p>
@@ -502,13 +618,13 @@ function App() {
                 <h2>Spending by category</h2>
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
-                    <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} label={{ fill: '#101112', fontSize: 12 }}>
+                    <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} label={{ fill: '#E8F6F8', fontSize: 12 }}>
                       {categoryData.map((entry, index) => (
                         <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => `M${value.toFixed(2)}`} contentStyle={{ background: '#FFFFFF', border: '1px solid rgba(16,17,18,0.1)', borderRadius: 10 }} />
-                    <Legend wrapperStyle={{ color: '#101112', fontSize: 12 }} />
+                    <Tooltip formatter={(value) => `M${value.toFixed(2)}`} contentStyle={{ background: '#140B22', border: '1px solid rgba(0,211,242,0.3)', borderRadius: 10 }} itemStyle={{ color: '#E8F6F8' }} labelStyle={{ color: '#00D3F2' }} />
+                    <Legend wrapperStyle={{ color: '#E8F6F8', fontSize: 12 }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -564,9 +680,7 @@ function App() {
                   {dashboard.budgetStatus.map((b) => (
                     <div key={b.id} className="goal-card">
                       <p className="goal-title">{b.category}</p>
-                      <div className="progress-track">
-                        <div className={`progress-fill ${b.overBudget ? 'over-budget' : ''}`} style={{ width: `${b.pct}%` }} />
-                      </div>
+                      <div className="progress-track"><div className={`progress-fill ${b.overBudget ? 'over-budget' : ''}`} style={{ width: `${b.pct}%` }} /></div>
                       <p className="mono goal-amounts">M{b.spent.toFixed(2)} / M{b.monthlyLimit.toFixed(2)}{b.overBudget ? ' — over budget' : ''}</p>
                       <button className="icon-btn" onClick={() => handleDeleteBudget(b.id)}>Remove</button>
                     </div>
@@ -809,16 +923,70 @@ function App() {
             )}
           </section>
         )}
+
+        {activeTab === 'briefing' && (
+          <section>
+            <h1>Morning briefing</h1>
+            <p className="available-balance">
+              Get a short daily summary of your spending, goal progress, and bills due — sent as a push notification at whatever time you choose.
+            </p>
+
+            {!pushSupported && (
+              <p className="empty-state">Your browser doesn't support push notifications. Try Chrome, Firefox, or Edge — or on iPhone, install this app to your home screen first (Safari share menu → Add to Home Screen), then enable it from there.</p>
+            )}
+
+            {pushSupported && (
+              <div className="chart-card">
+                {!briefingSettings.briefingEnabled ? (
+                  <>
+                    <h2>Enable notifications</h2>
+                    <p className="goal-amounts">Turn this on to start receiving your daily briefing.</p>
+                    <button className="btn btn-primary" onClick={handleEnableBriefing} disabled={subscribing}>
+                      {subscribing ? 'Enabling…' : 'Enable morning briefing'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <h2>Briefing time</h2>
+                    <form onSubmit={handleSaveBriefingTime} className="form form-row">
+                      <select value={briefingSettings.briefingHour} onChange={(e) => setBriefingSettings({ ...briefingSettings, briefingHour: e.target.value })}>
+                        {Array.from({ length: 24 }, (_, i) => i).map((h) => <option key={h} value={h}>{h.toString().padStart(2, '0')}</option>)}
+                      </select>
+                      <select value={briefingSettings.briefingMinute} onChange={(e) => setBriefingSettings({ ...briefingSettings, briefingMinute: e.target.value })}>
+                        {[0, 15, 30, 45].map((m) => <option key={m} value={m}>{m.toString().padStart(2, '0')}</option>)}
+                      </select>
+                      <button type="submit" className="btn btn-primary" disabled={savingBriefingSettings}>
+                        {savingBriefingSettings ? 'Saving…' : 'Save time'}
+                      </button>
+                    </form>
+                    <div className="edit-actions">
+                      <button className="icon-btn" onClick={handleSendTest} disabled={sendingTest}>
+                        {sendingTest ? 'Sending…' : 'Send test now'}
+                      </button>
+                      <button className="icon-btn" onClick={handleDisableBriefing}>Disable</button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {todayBriefing && (
+              <div className="chart-card">
+                <h2>Today's briefing preview</h2>
+                <p className="goal-amounts">{todayBriefing}</p>
+              </div>
+            )}
+          </section>
+        )}
       </main>
 
       <nav className="bottom-nav">
         {TABS.map((tab) => {
           const Icon = tab.icon;
-          const label = tab.label === 'Repeat' ? 'Recurring' : tab.label === 'Wallet' ? 'Wallet' : tab.label;
           return (
             <button key={tab.id} className={`bottom-nav-item ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
-              <Icon size={20} />
-              <span>{label}</span>
+              <Icon size={19} />
+              <span>{tab.label}</span>
             </button>
           );
         })}
