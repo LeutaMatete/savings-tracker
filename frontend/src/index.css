@@ -297,6 +297,15 @@ input:focus, select:focus, button:focus-visible {
 
 .bottom-nav-item span { font-size: 0.58rem; }
 
+.velocity-banner {
+  display: flex; align-items: flex-start; gap: 0.6rem;
+  background: rgba(255,180,84,0.08); border: 1px solid rgba(255,180,84,0.35);
+  border-radius: 14px; padding: 0.85rem 1rem; margin: 0.75rem 0;
+  color: var(--gold);
+}
+.velocity-banner svg { flex-shrink: 0; margin-top: 0.1rem; }
+.velocity-banner p { margin: 0; font-size: 0.82rem; color: var(--ink); line-height: 1.4; }
+
 /* Desktop and up */
 @media (min-width: 1024px) {
   .main { max-width: 760px; margin: 0 auto; padding: 1.25rem 1.5rem 6.5rem 1.5rem; }

@@ -75,6 +75,10 @@ function App() {
   const [submittingCommand, setSubmittingCommand] = useState(false);
   const [showCommandHelp, setShowCommandHelp] = useState(false);
 
+  const [velocityWarnings, setVelocityWarnings] = useState([]);
+  const [velocityAlertsEnabled, setVelocityAlertsEnabled] = useState(false);
+  const [savingVelocitySettings, setSavingVelocitySettings] = useState(false);
+
   const [briefingSettings, setBriefingSettings] = useState({ briefingEnabled: false, briefingHour: 7, briefingMinute: 0 });
   const [todayBriefing, setTodayBriefing] = useState(null);
   const [pushSupported, setPushSupported] = useState(false);
@@ -99,20 +103,47 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (token) {
-      fetchDashboard();
-      fetchTransactions();
-      fetchGoals();
-      fetchCircles();
-      fetchRecurring();
-      fetchBriefingSettings();
-      fetchTodayBriefing();
-    }
-  }, [token]);
+  if (token) {
+    fetchDashboard();
+    fetchTransactions();
+    fetchGoals();
+    fetchCircles();
+    fetchRecurring();
+    fetchBriefingSettings();
+    fetchTodayBriefing();
+    fetchVelocityWarnings();
+    fetchVelocitySettings();
+  }
+}, [token]);
 
   useEffect(() => {
     localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
   }, [commandHistory]);
+
+async function fetchVelocityWarnings() {
+  try {
+    const res = await api.get('/velocity');
+    setVelocityWarnings(res.data);
+  } catch (err) { /* silent */ }
+}
+
+async function fetchVelocitySettings() {
+  try {
+    const res = await api.get('/velocity/settings');
+    setVelocityAlertsEnabled(res.data.velocityAlertsEnabled);
+  } catch (err) { /* silent */ }
+}
+
+async function handleToggleVelocityAlerts() {
+  setSavingVelocitySettings(true);
+  try {
+    const next = !velocityAlertsEnabled;
+    await api.post('/velocity/settings', { velocityAlertsEnabled: next });
+    setVelocityAlertsEnabled(next);
+    showToast(next ? 'Spending pace alerts enabled' : 'Spending pace alerts disabled', 'success');
+  } catch (err) { showToast(err.friendlyMessage); }
+  finally { setSavingVelocitySettings(false); }
+}
 
   async function fetchDashboard() {
     try { const res = await api.get('/dashboard'); setDashboard(res.data); }
@@ -520,6 +551,13 @@ function App() {
             <p>{todayBriefing}</p>
           </div>
         )}
+
+        {velocityWarnings.map((w) => (
+  <div key={w.budgetId} className="velocity-banner">
+    <TrendingUp size={16} />
+    <p>{w.message}</p>
+  </div>
+))}
 
         <div className="command-bar">
           <form onSubmit={handleCommandSubmit} className="command-form">
@@ -976,6 +1014,23 @@ function App() {
                 <p className="goal-amounts">{todayBriefing}</p>
               </div>
             )}
+
+{pushSupported && (
+  <div className="chart-card">
+    <h2>Spending pace alerts</h2>
+    <p className="goal-amounts">
+      Get warned mid-month if you're burning through a budget category faster than usual — before it actually runs out.
+    </p>
+    <button
+      className={velocityAlertsEnabled ? 'btn btn-secondary' : 'btn btn-primary'}
+      onClick={handleToggleVelocityAlerts}
+      disabled={savingVelocitySettings}
+    >
+      {savingVelocitySettings ? 'Saving…' : velocityAlertsEnabled ? 'Disable pace alerts' : 'Enable pace alerts'}
+    </button>
+  </div>
+)}
+
           </section>
         )}
       </main>

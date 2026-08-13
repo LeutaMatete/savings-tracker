@@ -10,6 +10,7 @@ const accountsRoutes = require('./routes/accounts.routes');
 const budgetsRoutes = require('./routes/budgets.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
 const pushRoutes = require('./routes/push.routes');
+const velocityRoutes = require('./routes/velocity.routes');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -35,6 +36,7 @@ app.use('/api/accounts', accountsRoutes);
 app.use('/api/budgets', budgetsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/velocity', velocityRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
