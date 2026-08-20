@@ -4,6 +4,7 @@ import {
   Home, ArrowLeftRight, Target, Users, Repeat, LogOut, Sun,
   ArrowDownLeft, ArrowUpRight, TrendingUp, TrendingDown, MoreHorizontal,
 } from 'lucide-react';
+import BottomNavBar from './components/BottomNavBar';
 import api, { setOnUnauthorized } from './api';
 
 const CHART_COLORS = ['#00D3F2', '#39FF88', '#FFB454', '#FF4D6D', '#8C5CF7', '#5CA7F7'];
@@ -1035,17 +1036,7 @@ async function handleToggleVelocityAlerts() {
         )}
       </main>
 
-      <nav className="bottom-nav">
-        {TABS.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button key={tab.id} className={`bottom-nav-item ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
-              <Icon size={19} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+           <BottomNavBar items={TABS} activeId={activeTab} onChange={setActiveTab} />
     </div>
   );
 }
