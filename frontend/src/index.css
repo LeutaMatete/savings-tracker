@@ -318,52 +318,76 @@ input:focus, select:focus, button:focus-visible {
 }
 .capsule-nav {
   position: fixed;
-  bottom: 0.9rem;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 100;
   display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.4rem;
   background: var(--surface-dark);
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 24px rgba(0,211,242,0.08);
-  max-width: 95vw;
-  overflow-x: auto;
-  scrollbar-width: none;
+  border-top: 1px solid var(--border-strong);
+  padding: 0.4rem 0.25rem calc(0.4rem + env(safe-area-inset-bottom, 0px)) 0.25rem;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.45);
 }
-.capsule-nav::-webkit-scrollbar { display: none; }
 
 .capsule-nav-item {
+  position: relative;
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0;
-  padding: 0.5rem 0.65rem;
-  border-radius: 999px;
+  justify-content: center;
+  gap: 0.15rem;
+  padding: 0.4rem 0.15rem;
+  background: none;
   border: none;
   cursor: pointer;
-  background: transparent;
   color: var(--ink-soft);
-  transition: background 0.2s ease, color 0.2s ease;
-  flex-shrink: 0;
-}
-.capsule-nav-item:hover { background: rgba(0,211,242,0.06); }
-.capsule-nav-item.active {
-  background: rgba(0,211,242,0.12);
-  color: var(--lime);
+  min-width: 0;
 }
 
-.capsule-nav-label-wrap {
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  max-width: 72px;
+.capsule-nav-highlight {
+  position: absolute;
+  inset: 2px 4px;
+  background: rgba(0, 211, 242, 0.12);
+  border-radius: 12px;
+  z-index: 0;
 }
+
+.capsule-nav-icon, .capsule-nav-label {
+  position: relative;
+  z-index: 1;
+}
+
 .capsule-nav-label {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   font-weight: 700;
   white-space: nowrap;
-  color: var(--lime);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.capsule-nav-item.active { color: var(--lime); }
+.capsule-nav-item.active .capsule-nav-icon { filter: drop-shadow(0 0 6px rgba(0,211,242,0.5)); }
+
+/* Tablet and up: switch to a floating centered pill since there's room to spare */
+@media (min-width: 640px) {
+  .capsule-nav {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    bottom: 0.9rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-strong);
+    border-top: none;
+    max-width: 480px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 24px rgba(0,211,242,0.08);
+  }
+  .capsule-nav-item {
+    flex-direction: row;
+    gap: 0.4rem;
+    padding: 0.55rem 0.9rem;
+  }
+  .capsule-nav-label { font-size: 0.72rem; }
+  .capsule-nav-highlight { inset: 2px; border-radius: 999px; }
 }
