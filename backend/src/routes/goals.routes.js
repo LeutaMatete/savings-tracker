@@ -6,6 +6,7 @@ const {
   createGoal,
   updateGoal,
   getBalanceSummary,
+  getMonthlyPlans,
   contributeToGoal,
   deleteGoal,
 } = require('../controllers/goals.controller');
@@ -14,6 +15,7 @@ router.use(requireAuth);
 
 router.get('/', getGoals);
 router.get('/balance', getBalanceSummary);
+router.get('/monthly-plans', getMonthlyPlans);
 router.post('/', createGoal);
 router.patch('/:id', updateGoal);
 router.patch('/:id/contribute', contributeToGoal);

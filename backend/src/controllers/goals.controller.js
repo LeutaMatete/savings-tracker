@@ -19,6 +19,9 @@ const createGoal = asyncHandler(async (req, res) => {
   if (isNaN(parseFloat(targetAmount)) || parseFloat(targetAmount) <= 0) {
     throw new AppError('Target amount must be a positive number', 400);
   }
+  if (deadline && new Date(deadline) <= new Date()) {
+    throw new AppError('Deadline must be in the future', 400);
+  }
 
   const goal = await prisma.goal.create({
     data: {
@@ -45,6 +48,9 @@ const updateGoal = asyncHandler(async (req, res) => {
   }
   if (targetAmount !== undefined && (isNaN(parseFloat(targetAmount)) || parseFloat(targetAmount) <= 0)) {
     throw new AppError('Target amount must be a positive number', 400);
+  }
+  if (deadline && new Date(deadline) <= new Date()) {
+    throw new AppError('Deadline must be in the future', 400);
   }
 
   const updated = await prisma.goal.update({
@@ -74,6 +80,55 @@ async function getAvailableBalance(userId) {
 const getBalanceSummary = asyncHandler(async (req, res) => {
   const available = await getAvailableBalance(req.userId);
   res.json({ availableBalance: available });
+});
+
+function computeMonthlyRequired(goal, now = new Date()) {
+  if (!goal.deadline) return null;
+
+  const deadline = new Date(goal.deadline);
+  const remaining = Math.max(0, goal.targetAmount - goal.currentAmount);
+
+  const msPerMonth = 1000 * 60 * 60 * 24 * 30.44;
+  const monthsLeft = (deadline - now) / msPerMonth;
+
+  if (monthsLeft <= 0) {
+    return { remaining, monthsLeft: 0, monthlyRequired: remaining, overdue: true };
+  }
+
+  const monthlyRequired = remaining / monthsLeft;
+  return { remaining, monthsLeft, monthlyRequired, overdue: false };
+}
+
+const getMonthlyPlans = asyncHandler(async (req, res) => {
+  const goals = await prisma.goal.findMany({ where: { userId: req.userId, deadline: { not: null } } });
+  const available = await getAvailableBalance(req.userId);
+
+  const totalIncome = (await prisma.transaction.findMany({
+    where: { userId: req.userId, type: 'income', date: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
+  })).reduce((s, t) => s + t.amount, 0);
+
+  const plans = goals.map((goal) => {
+    const plan = computeMonthlyRequired(goal);
+    if (!plan) return null;
+
+    const pctOfIncome = totalIncome > 0 ? (plan.monthlyRequired / totalIncome) * 100 : null;
+
+    return {
+      goalId: goal.id,
+      title: goal.title,
+      targetAmount: goal.targetAmount,
+      currentAmount: goal.currentAmount,
+      deadline: goal.deadline,
+      remaining: plan.remaining,
+      monthsLeft: Math.round(plan.monthsLeft * 10) / 10,
+      monthlyRequired: Math.round(plan.monthlyRequired * 100) / 100,
+      overdue: plan.overdue,
+      pctOfMonthlyIncome: pctOfIncome !== null ? Math.round(pctOfIncome) : null,
+      feasible: pctOfIncome === null ? null : pctOfIncome <= 60,
+    };
+  }).filter(Boolean);
+
+  res.json({ plans, availableBalance: available, last30DayIncome: totalIncome });
 });
 
 const contributeToGoal = asyncHandler(async (req, res) => {
@@ -127,4 +182,7 @@ const deleteGoal = asyncHandler(async (req, res) => {
   res.json({ message: 'Goal deleted' });
 });
 
-module.exports = { getGoals, createGoal, updateGoal, getAvailableBalance, getBalanceSummary, contributeToGoal, deleteGoal };
+module.exports = {
+  getGoals, createGoal, updateGoal, getAvailableBalance,
+  getBalanceSummary, getMonthlyPlans, contributeToGoal, deleteGoal,
+};

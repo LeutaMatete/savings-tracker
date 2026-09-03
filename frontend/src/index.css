@@ -360,7 +360,7 @@ input:focus, select:focus, button:focus-visible {
 
 .capsule-nav-label {
   font-size: 0.6rem;
-  font-weight: 700;
+  fnt-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -390,4 +390,15 @@ input:focus, select:focus, button:focus-visible {
   }
   .capsule-nav-label { font-size: 0.72rem; }
   .capsule-nav-highlight { inset: 2px; border-radius: 999px; }
+};
+.plan-panel {
+  background: rgba(0,211,242,0.06);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.75rem;
 }
+.plan-text { margin: 0; font-size: 0.78rem; color: var(--ink); line-height: 1.4; }
+.plan-amount { color: var(--lime); font-weight: 700; }
+.plan-panel.plan-warning { background: rgba(255,180,84,0.08); border-color: rgba(255,180,84,0.35); }
+.plan-warning-text { margin: 0.35rem 0 0 0; font-size: 0.74rem; color: var(--gold); }

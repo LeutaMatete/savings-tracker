@@ -4,8 +4,8 @@ import {
   Home, ArrowLeftRight, Target, Users, Repeat, LogOut, Sun,
   ArrowDownLeft, ArrowUpRight, TrendingUp, TrendingDown, MoreHorizontal,
 } from 'lucide-react';
-import BottomNavBar from './components/BottomNavBar';
 import api, { setOnUnauthorized } from './api';
+import BottomNavBar from './components/BottomNavBar';
 
 const CHART_COLORS = ['#00D3F2', '#39FF88', '#FFB454', '#FF4D6D', '#8C5CF7', '#5CA7F7'];
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -44,11 +44,12 @@ function App() {
   const [editTxForm, setEditTxForm] = useState({ amount: '', category: '' });
 
   const [goals, setGoals] = useState([]);
-  const [goalForm, setGoalForm] = useState({ title: '', targetAmount: '' });
+  const [goalForm, setGoalForm] = useState({ title: '', targetAmount: '', deadline: '' });
   const [editingGoalId, setEditingGoalId] = useState(null);
-  const [editGoalForm, setEditGoalForm] = useState({ title: '', targetAmount: '' });
+  const [editGoalForm, setEditGoalForm] = useState({ title: '', targetAmount: '', deadline: '' });
   const [contributeAmounts, setContributeAmounts] = useState({});
   const [contributingGoalId, setContributingGoalId] = useState(null);
+  const [monthlyPlans, setMonthlyPlans] = useState({ plans: [], availableBalance: 0, last30DayIncome: 0 });
 
   const [circles, setCircles] = useState([]);
   const [circleForm, setCircleForm] = useState({ name: '', contributionAmount: '', frequency: 'monthly', payoutType: 'rotating', targetAmount: '' });
@@ -76,16 +77,16 @@ function App() {
   const [submittingCommand, setSubmittingCommand] = useState(false);
   const [showCommandHelp, setShowCommandHelp] = useState(false);
 
-  const [velocityWarnings, setVelocityWarnings] = useState([]);
-  const [velocityAlertsEnabled, setVelocityAlertsEnabled] = useState(false);
-  const [savingVelocitySettings, setSavingVelocitySettings] = useState(false);
-
   const [briefingSettings, setBriefingSettings] = useState({ briefingEnabled: false, briefingHour: 7, briefingMinute: 0 });
   const [todayBriefing, setTodayBriefing] = useState(null);
   const [pushSupported, setPushSupported] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
   const [savingBriefingSettings, setSavingBriefingSettings] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
+
+  const [velocityWarnings, setVelocityWarnings] = useState([]);
+  const [velocityAlertsEnabled, setVelocityAlertsEnabled] = useState(false);
+  const [savingVelocitySettings, setSavingVelocitySettings] = useState(false);
 
   function showToast(message, type = 'error') {
     setToast({ message, type });
@@ -104,47 +105,23 @@ function App() {
   }, []);
 
   useEffect(() => {
-  if (token) {
-    fetchDashboard();
-    fetchTransactions();
-    fetchGoals();
-    fetchCircles();
-    fetchRecurring();
-    fetchBriefingSettings();
-    fetchTodayBriefing();
-    fetchVelocityWarnings();
-    fetchVelocitySettings();
-  }
-}, [token]);
+    if (token) {
+      fetchDashboard();
+      fetchTransactions();
+      fetchGoals();
+      fetchCircles();
+      fetchRecurring();
+      fetchBriefingSettings();
+      fetchTodayBriefing();
+      fetchVelocityWarnings();
+      fetchVelocitySettings();
+      fetchMonthlyPlans();
+    }
+  }, [token]);
 
   useEffect(() => {
     localStorage.setItem('commandHistory', JSON.stringify(commandHistory));
   }, [commandHistory]);
-
-async function fetchVelocityWarnings() {
-  try {
-    const res = await api.get('/velocity');
-    setVelocityWarnings(res.data);
-  } catch (err) { /* silent */ }
-}
-
-async function fetchVelocitySettings() {
-  try {
-    const res = await api.get('/velocity/settings');
-    setVelocityAlertsEnabled(res.data.velocityAlertsEnabled);
-  } catch (err) { /* silent */ }
-}
-
-async function handleToggleVelocityAlerts() {
-  setSavingVelocitySettings(true);
-  try {
-    const next = !velocityAlertsEnabled;
-    await api.post('/velocity/settings', { velocityAlertsEnabled: next });
-    setVelocityAlertsEnabled(next);
-    showToast(next ? 'Spending pace alerts enabled' : 'Spending pace alerts disabled', 'success');
-  } catch (err) { showToast(err.friendlyMessage); }
-  finally { setSavingVelocitySettings(false); }
-}
 
   async function fetchDashboard() {
     try { const res = await api.get('/dashboard'); setDashboard(res.data); }
@@ -163,6 +140,12 @@ async function handleToggleVelocityAlerts() {
     try { const res = await api.get('/goals'); setGoals(res.data); }
     catch (err) { showToast(err.friendlyMessage); }
   }
+  async function fetchMonthlyPlans() {
+    try {
+      const res = await api.get('/goals/monthly-plans');
+      setMonthlyPlans(res.data);
+    } catch (err) { /* silent */ }
+  }
   async function fetchCircles() {
     try { const res = await api.get('/circles/mine'); setCircles(res.data); }
     catch (err) { showToast(err.friendlyMessage); }
@@ -179,11 +162,34 @@ async function handleToggleVelocityAlerts() {
         briefingHour: res.data.briefingHour ?? 7,
         briefingMinute: res.data.briefingMinute ?? 0,
       });
-    } catch (err) { /* silent — not critical */ }
+    } catch (err) { /* silent */ }
   }
   async function fetchTodayBriefing() {
     try { const res = await api.get('/push/today'); setTodayBriefing(res.data.text); }
     catch (err) { /* silent */ }
+  }
+  async function fetchVelocityWarnings() {
+    try {
+      const res = await api.get('/velocity');
+      setVelocityWarnings(res.data);
+    } catch (err) { /* silent */ }
+  }
+  async function fetchVelocitySettings() {
+    try {
+      const res = await api.get('/velocity/settings');
+      setVelocityAlertsEnabled(res.data.velocityAlertsEnabled);
+    } catch (err) { /* silent */ }
+  }
+
+  async function handleToggleVelocityAlerts() {
+    setSavingVelocitySettings(true);
+    try {
+      const next = !velocityAlertsEnabled;
+      await api.post('/velocity/settings', { velocityAlertsEnabled: next });
+      setVelocityAlertsEnabled(next);
+      showToast(next ? 'Spending pace alerts enabled' : 'Spending pace alerts disabled', 'success');
+    } catch (err) { showToast(err.friendlyMessage); }
+    finally { setSavingVelocitySettings(false); }
   }
 
   async function handleAuthSubmit(e) {
@@ -223,7 +229,7 @@ async function handleToggleVelocityAlerts() {
       if (payload.type === 'income') delete payload.category;
       await api.post('/transactions', payload);
       setTxForm({ amount: '', type: 'expense', category: '', goalId: '', accountId: '' });
-      await Promise.all([fetchTransactions(), fetchGoals(), fetchDashboard()]);
+      await Promise.all([fetchTransactions(), fetchGoals(), fetchDashboard(), fetchMonthlyPlans()]);
       showToast('Transaction added', 'success');
     } catch (err) { showToast(err.friendlyMessage); }
     finally { setSubmittingTx(false); }
@@ -255,22 +261,31 @@ async function handleToggleVelocityAlerts() {
     e.preventDefault();
     setSubmittingGoal(true);
     try {
-      await api.post('/goals', goalForm);
-      setGoalForm({ title: '', targetAmount: '' });
-      await Promise.all([fetchGoals(), fetchDashboard()]);
+      const payload = { ...goalForm };
+      if (!payload.deadline) delete payload.deadline;
+      await api.post('/goals', payload);
+      setGoalForm({ title: '', targetAmount: '', deadline: '' });
+      await Promise.all([fetchGoals(), fetchDashboard(), fetchMonthlyPlans()]);
       showToast('Goal added', 'success');
     } catch (err) { showToast(err.friendlyMessage); }
     finally { setSubmittingGoal(false); }
   }
 
-  function startEditGoal(g) { setEditingGoalId(g.id); setEditGoalForm({ title: g.title, targetAmount: g.targetAmount }); }
+  function startEditGoal(g) {
+    setEditingGoalId(g.id);
+    setEditGoalForm({
+      title: g.title,
+      targetAmount: g.targetAmount,
+      deadline: g.deadline ? g.deadline.slice(0, 10) : '',
+    });
+  }
   function cancelEditGoal() { setEditingGoalId(null); }
 
   async function saveEditGoal(id) {
     try {
       await api.patch(`/goals/${id}`, editGoalForm);
       setEditingGoalId(null);
-      await Promise.all([fetchGoals(), fetchDashboard()]);
+      await Promise.all([fetchGoals(), fetchDashboard(), fetchMonthlyPlans()]);
       showToast('Goal updated', 'success');
     } catch (err) { showToast(err.friendlyMessage); }
   }
@@ -282,7 +297,7 @@ async function handleToggleVelocityAlerts() {
     try {
       await api.patch(`/goals/${goalId}/contribute`, { amount });
       setContributeAmounts({ ...contributeAmounts, [goalId]: '' });
-      await Promise.all([fetchGoals(), fetchDashboard()]);
+      await Promise.all([fetchGoals(), fetchDashboard(), fetchMonthlyPlans()]);
       showToast('Money added to goal', 'success');
     } catch (err) { showToast(err.friendlyMessage); }
     finally { setContributingGoalId(null); }
@@ -379,7 +394,7 @@ async function handleToggleVelocityAlerts() {
       setCommandInput('');
       setCommandResult({ message: res.data.message, type: 'success' });
       showToast(res.data.message, 'success');
-      await Promise.all([fetchTransactions(), fetchGoals(), fetchCircles(), fetchDashboard()]);
+      await Promise.all([fetchTransactions(), fetchGoals(), fetchCircles(), fetchDashboard(), fetchMonthlyPlans()]);
     } catch (err) {
       setCommandResult({ message: err.friendlyMessage, type: 'error' });
       showToast(err.friendlyMessage);
@@ -554,11 +569,11 @@ async function handleToggleVelocityAlerts() {
         )}
 
         {velocityWarnings.map((w) => (
-  <div key={w.budgetId} className="velocity-banner">
-    <TrendingUp size={16} />
-    <p>{w.message}</p>
-  </div>
-))}
+          <div key={w.budgetId} className="velocity-banner">
+            <TrendingUp size={16} />
+            <p>{w.message}</p>
+          </div>
+        ))}
 
         <div className="command-bar">
           <form onSubmit={handleCommandSubmit} className="command-form">
@@ -800,6 +815,10 @@ async function handleToggleVelocityAlerts() {
             <form onSubmit={handleGoalSubmit} className="form form-row">
               <input placeholder="Goal title" value={goalForm.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} />
               <input placeholder="Target amount" type="number" value={goalForm.targetAmount} onChange={(e) => setGoalForm({ ...goalForm, targetAmount: e.target.value })} />
+              <label className="field-inline">
+                <span>Target date (optional)</span>
+                <input type="date" value={goalForm.deadline} onChange={(e) => setGoalForm({ ...goalForm, deadline: e.target.value })} />
+              </label>
               <button type="submit" className="btn btn-primary" disabled={submittingGoal}>{submittingGoal ? 'Adding…' : 'Add goal'}</button>
             </form>
 
@@ -809,12 +828,14 @@ async function handleToggleVelocityAlerts() {
               <div className="goal-grid">
                 {goals.map((g) => {
                   const pct = Math.min(100, (g.currentAmount / g.targetAmount) * 100);
+                  const plan = monthlyPlans.plans.find((p) => p.goalId === g.id);
                   return (
                     <div key={g.id} className="goal-card">
                       {editingGoalId === g.id ? (
                         <>
                           <input className="edit-input" value={editGoalForm.title} onChange={(e) => setEditGoalForm({ ...editGoalForm, title: e.target.value })} />
                           <input className="edit-input" type="number" value={editGoalForm.targetAmount} onChange={(e) => setEditGoalForm({ ...editGoalForm, targetAmount: e.target.value })} />
+                          <input className="edit-input" type="date" value={editGoalForm.deadline} onChange={(e) => setEditGoalForm({ ...editGoalForm, deadline: e.target.value })} />
                           <div className="edit-actions">
                             <button className="icon-btn" onClick={() => saveEditGoal(g.id)}>Save</button>
                             <button className="icon-btn" onClick={cancelEditGoal}>Cancel</button>
@@ -825,6 +846,24 @@ async function handleToggleVelocityAlerts() {
                           <p className="goal-title">{g.title}</p>
                           <div className="progress-track"><div className="progress-fill" style={{ width: `${pct}%` }} /></div>
                           <p className="mono goal-amounts">M{g.currentAmount.toFixed(2)} / M{g.targetAmount.toFixed(2)}</p>
+
+                          {plan && (
+                            <div className={`plan-panel ${plan.feasible === false ? 'plan-warning' : ''}`}>
+                              {plan.overdue ? (
+                                <p className="plan-text">This goal's target date has passed — M{plan.remaining.toFixed(2)} still needed.</p>
+                              ) : (
+                                <>
+                                  <p className="plan-text">
+                                    Add <span className="mono plan-amount">M{plan.monthlyRequired.toFixed(2)}</span>/month to hit this by {new Date(plan.deadline).toLocaleDateString()} ({plan.monthsLeft} months left).
+                                  </p>
+                                  {plan.feasible === false && (
+                                    <p className="plan-warning-text">That's {plan.pctOfMonthlyIncome}% of your recent monthly income — might be tight.</p>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+
                           <div className="goal-add-panel">
                             <p className="goal-add-label">Add money to this goal</p>
                             <div className="goal-add-row">
@@ -1009,34 +1048,33 @@ async function handleToggleVelocityAlerts() {
               </div>
             )}
 
+            {pushSupported && (
+              <div className="chart-card">
+                <h2>Spending pace alerts</h2>
+                <p className="goal-amounts">
+                  Get warned mid-month if you're burning through a budget category faster than usual — before it actually runs out.
+                </p>
+                <button
+                  className={velocityAlertsEnabled ? 'btn btn-secondary' : 'btn btn-primary'}
+                  onClick={handleToggleVelocityAlerts}
+                  disabled={savingVelocitySettings}
+                >
+                  {savingVelocitySettings ? 'Saving…' : velocityAlertsEnabled ? 'Disable pace alerts' : 'Enable pace alerts'}
+                </button>
+              </div>
+            )}
+
             {todayBriefing && (
               <div className="chart-card">
                 <h2>Today's briefing preview</h2>
                 <p className="goal-amounts">{todayBriefing}</p>
               </div>
             )}
-
-{pushSupported && (
-  <div className="chart-card">
-    <h2>Spending pace alerts</h2>
-    <p className="goal-amounts">
-      Get warned mid-month if you're burning through a budget category faster than usual — before it actually runs out.
-    </p>
-    <button
-      className={velocityAlertsEnabled ? 'btn btn-secondary' : 'btn btn-primary'}
-      onClick={handleToggleVelocityAlerts}
-      disabled={savingVelocitySettings}
-    >
-      {savingVelocitySettings ? 'Saving…' : velocityAlertsEnabled ? 'Disable pace alerts' : 'Enable pace alerts'}
-    </button>
-  </div>
-)}
-
           </section>
         )}
       </main>
 
-           <BottomNavBar items={TABS} activeId={activeTab} onChange={setActiveTab} />
+      <BottomNavBar items={TABS} activeId={activeTab} onChange={setActiveTab} />
     </div>
   );
 }
