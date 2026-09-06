@@ -371,7 +371,7 @@ input:focus, select:focus, button:focus-visible {
 .capsule-nav-item.active .capsule-nav-icon { filter: drop-shadow(0 0 6px rgba(0,211,242,0.5)); }
 
 /* Tablet and up: switch to a floating centered pill since there's room to spare */
-@media (min-width: 640px) {
+@media (min-width: 640px) {}
   .capsule-nav {
     left: 50%;
     right: auto;
@@ -388,9 +388,10 @@ input:focus, select:focus, button:focus-visible {
     gap: 0.4rem;
     padding: 0.55rem 0.9rem;
   }
-  .capsule-nav-label { font-size: 0.72rem; }
-  .capsule-nav-highlight { inset: 2px; border-radius: 999px; }
-};
+.capsule-nav-label { font-size: 0.72rem; }
+.capsule-nav-highlight { inset: 2px; border-radius: 999px; }
+
+
 .plan-panel {
   background: rgba(0,211,242,0.06);
   border: 1px solid var(--border-strong);
