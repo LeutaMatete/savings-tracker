@@ -127,6 +127,25 @@ input:focus, select:focus, button:focus-visible {
   width: 100%; min-width: 0; flex: 1;
 }
 
+/* Briefing & velocity banners */
+.briefing-banner {
+  display: flex; align-items: flex-start; gap: 0.6rem;
+  background: rgba(0,211,242,0.08); border: 1px solid var(--border-strong);
+  border-radius: 14px; padding: 0.85rem 1rem; margin: 0.75rem 0;
+  color: var(--lime);
+}
+.briefing-banner svg { flex-shrink: 0; margin-top: 0.1rem; }
+.briefing-banner p { margin: 0; font-size: 0.82rem; color: var(--ink); line-height: 1.4; }
+
+.velocity-banner {
+  display: flex; align-items: flex-start; gap: 0.6rem;
+  background: rgba(255,180,84,0.08); border: 1px solid rgba(255,180,84,0.35);
+  border-radius: 14px; padding: 0.85rem 1rem; margin: 0.75rem 0;
+  color: var(--gold);
+}
+.velocity-banner svg { flex-shrink: 0; margin-top: 0.1rem; }
+.velocity-banner p { margin: 0; font-size: 0.82rem; color: var(--ink); line-height: 1.4; }
+
 /* Command bar */
 .command-bar {
   background: var(--surface-dark); border: 1px solid var(--border-strong); border-radius: 16px;
@@ -238,6 +257,19 @@ input:focus, select:focus, button:focus-visible {
 .edit-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap; }
 .edit-actions .icon-btn { flex: 1 1 auto; text-align: center; }
 
+/* Goal monthly savings plan panel */
+.plan-panel {
+  background: rgba(0,211,242,0.06);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.plan-text { margin: 0; font-size: 0.78rem; color: var(--ink); line-height: 1.4; }
+.plan-amount { color: var(--lime); font-weight: 700; }
+.plan-panel.plan-warning { background: rgba(255,180,84,0.08); border-color: rgba(255,180,84,0.35); }
+.plan-warning-text { margin: 0.35rem 0 0 0; font-size: 0.74rem; color: var(--gold); }
+
 .goal-add-panel { background: var(--surface-dark); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem; margin-bottom: 0.6rem; }
 .goal-add-label { text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.62rem; color: var(--lime-dark); margin: 0 0 0.4rem 0; font-weight: 700; }
 .goal-add-row { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -256,66 +288,7 @@ input:focus, select:focus, button:focus-visible {
 
 .empty-state { color: var(--ink-soft); font-style: italic; font-size: 0.85rem; }
 
-/* Bottom nav */
-.bottom-nav {
-  position: fixed; bottom: 0.9rem; left: 0.9rem; right: 0.9rem;
-  background: var(--surface-dark); border: 1px solid var(--border-strong); border-radius: 20px;
-  display: flex; justify-content: space-around; align-items: center;
-  padding: 0.55rem 0.3rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 24px rgba(0,211,242,0.08);
-  z-index: 100;
-}
-.bottom-nav-item {
-  background: none; border: none; color: var(--ink-soft);
-  display: flex; flex-direction: column; align-items: center; gap: 0.2rem;
-  font-size: 0.62rem; font-weight: 700; padding: 0.4rem 0.5rem; border-radius: 12px; cursor: pointer;
-  flex: 1;
-}
-.bottom-nav-item.active { color: var(--lime); background: rgba(0,211,242,0.1); }
-
-/* Tablet and up */
-@media (min-width: 640px) {
-  .main { padding: 0.75rem 2rem 6.5rem 2rem; }
-  .form-row { flex-direction: row; flex-wrap: wrap; align-items: center; }
-  .form-row > input, .form-row > select { flex: 1 1 140px; width: auto; }
-  .form-row > .btn { width: auto; flex: 0 0 auto; }
-  .filter-row { flex-direction: row; align-items: flex-end; }
-  .filter-row .field-inline { width: auto; flex: 1 1 130px; }
-  .stat-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-  .goal-grid, .circle-grid { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
-  .toast { left: auto; max-width: 340px; top: 1.25rem; right: 1.25rem; }
-  .bottom-nav { left: 50%; transform: translateX(-50%); max-width: 420px; }
-}
-
-.briefing-banner {
-  display: flex; align-items: flex-start; gap: 0.6rem;
-  background: rgba(0,211,242,0.08); border: 1px solid var(--border-strong);
-  border-radius: 14px; padding: 0.85rem 1rem; margin: 0.75rem 0;
-  color: var(--lime);
-}
-.briefing-banner svg { flex-shrink: 0; margin-top: 0.1rem; }
-.briefing-banner p { margin: 0; font-size: 0.82rem; color: var(--ink); line-height: 1.4; }
-
-.bottom-nav-item span { font-size: 0.58rem; }
-
-.velocity-banner {
-  display: flex; align-items: flex-start; gap: 0.6rem;
-  background: rgba(255,180,84,0.08); border: 1px solid rgba(255,180,84,0.35);
-  border-radius: 14px; padding: 0.85rem 1rem; margin: 0.75rem 0;
-  color: var(--gold);
-}
-.velocity-banner svg { flex-shrink: 0; margin-top: 0.1rem; }
-.velocity-banner p { margin: 0; font-size: 0.82rem; color: var(--ink); line-height: 1.4; }
-
-/* Desktop and up */
-@media (min-width: 1024px) {
-  .main { max-width: 760px; margin: 0 auto; padding: 1.25rem 1.5rem 6.5rem 1.5rem; }
-  .topbar { max-width: 760px; margin: 0 auto; width: 100%; padding: 1.25rem 1.5rem 0.5rem 1.5rem; }
-  .dashboard-columns { flex-direction: row; gap: 1.25rem; }
-  .dashboard-columns > .chart-card { flex: 1; margin-top: 1.25rem; }
-  .goal-add-row { flex-direction: row; }
-  .goal-add-row .btn { width: auto; }
-  .hero-balance { font-size: 2.5rem; }
-}
+/* Tubelight bottom nav */
 .tubelight-wrap {
   position: fixed;
   bottom: 1rem;
@@ -402,3 +375,27 @@ input:focus, select:focus, button:focus-visible {
 .tubelight-glow-1 { width: 3rem; height: 1.5rem; top: -0.5rem; left: 50%; transform: translateX(-50%); }
 .tubelight-glow-2 { width: 2rem; height: 1.5rem; top: -0.25rem; left: 50%; transform: translateX(-50%); }
 .tubelight-glow-3 { width: 1rem; height: 1rem; top: 0; left: 50%; transform: translateX(-60%); }
+
+/* Tablet and up */
+@media (min-width: 640px) {
+  .main { padding: 0.75rem 2rem 6.5rem 2rem; }
+  .form-row { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .form-row > input, .form-row > select { flex: 1 1 140px; width: auto; }
+  .form-row > .btn { width: auto; flex: 0 0 auto; }
+  .filter-row { flex-direction: row; align-items: flex-end; }
+  .filter-row .field-inline { width: auto; flex: 1 1 130px; }
+  .stat-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+  .goal-grid, .circle-grid { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .toast { left: auto; max-width: 340px; top: 1.25rem; right: 1.25rem; }
+}
+
+/* Desktop and up */
+@media (min-width: 1024px) {
+  .main { max-width: 760px; margin: 0 auto; padding: 1.25rem 1.5rem 6.5rem 1.5rem; }
+  .topbar { max-width: 760px; margin: 0 auto; width: 100%; padding: 1.25rem 1.5rem 0.5rem 1.5rem; }
+  .dashboard-columns { flex-direction: row; gap: 1.25rem; }
+  .dashboard-columns > .chart-card { flex: 1; margin-top: 1.25rem; }
+  .goal-add-row { flex-direction: row; }
+  .goal-add-row .btn { width: auto; }
+  .hero-balance { font-size: 2.5rem; }
+}
