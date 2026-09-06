@@ -290,6 +290,17 @@ function App() {
     } catch (err) { showToast(err.friendlyMessage); }
   }
 
+async function handleDeleteGoal(id) {
+  if (!confirm('Delete this goal? This cannot be undone, even if it\'s not finished yet.')) return;
+  try {
+    await api.delete(`/goals/${id}`);
+    await Promise.all([fetchGoals(), fetchDashboard(), fetchMonthlyPlans()]);
+    showToast('Goal deleted', 'success');
+  } catch (err) {
+    showToast(err.friendlyMessage);
+  }
+}
+
   async function handleAddToGoal(goalId) {
     const amount = contributeAmounts[goalId];
     if (!amount || parseFloat(amount) <= 0) { showToast('Enter an amount to add first'); return; }
@@ -795,7 +806,10 @@ function App() {
                         <span className={`badge ${tx.type}`}>{tx.type === 'income' ? '+' : '−'}</span>
                         <span className="list-main">{tx.type === 'income' ? 'Income' : tx.category}</span>
                         <span className="mono">M{tx.amount.toFixed(2)}</span>
-                        <button className="icon-btn" onClick={() => startEditTx(tx)}>Edit</button>
+                        <div className="edit-actions">
+  <button className="icon-btn" onClick={() => startEditGoal(g)}>Edit goal</button>
+  <button className="icon-btn" onClick={() => handleDeleteGoal(g.id)}>Delete</button>
+</div>
                         <button className="icon-btn" onClick={() => handleDeleteTx(tx.id)}>Remove</button>
                       </>
                     )}
