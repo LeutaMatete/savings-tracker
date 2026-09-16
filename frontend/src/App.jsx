@@ -104,6 +104,16 @@ function App() {
     setPushSupported('serviceWorker' in navigator && 'PushManager' in window);
   }, []);
 
+useEffect(() => {
+  setPushSupported('serviceWorker' in navigator && 'PushManager' in window);
+}, []);
+
+useEffect(() => {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+}, []);
+
   useEffect(() => {
     if (token) {
       fetchDashboard();
